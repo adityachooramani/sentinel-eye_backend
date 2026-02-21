@@ -1,0 +1,259 @@
+#!/usr/bin/env python3
+"""
+EC2 Processing Script - Land-Use Change Detection (Dynamic S3 Search)
+Final Corrected Version
+"""
+import os
+import sys
+import json
+import boto3
+import rasterio
+import numpy as np
+import geopandas as gpd
+from datetime import datetime
+from pathlib import Path
+from shapely.geometry import shape, mapping
+from rasterio.features import shapes
+from boto3.dynamodb.conditions import Key # <--- Needed for Query
+
+# --- CONFIGURATION ---
+REGION = 'us-west-2' 
+BUCKET_NAME = 'landuse-rondonia-data-dev'
+JOBS_TABLE = 'landuse-rondonia-analysis-jobs-dev'
+CHANGES_TABLE = 'landuse-rondonia-detected-changes-dev'
+WORK_DIR = '/home/ec2-user/landuse-processing'
+
+# Initialize AWS clients with Region
+s3 = boto3.client('s3', region_name=REGION)
+dynamodb = boto3.resource('dynamodb', region_name=REGION)
+
+jobs_table = dynamodb.Table(JOBS_TABLE)
+changes_table = dynamodb.Table(CHANGES_TABLE)
+
+class LandUseProcessor:
+    def __init__(self, job_id):
+        self.job_id = job_id
+        self.work_dir = Path(WORK_DIR) / job_id
+        self.work_dir.mkdir(parents=True, exist_ok=True)
+        
+        # 1. Load Job Metadata (Required for timestamps and processing logic)
+        self.job = self.load_job()
+        
+        # 2. Extract Configuration
+        # We use .get() with defaults to prevent crashes on missing keys
+        self.start_year = self.job.get('start_year', 2021)
+        self.end_year = self.job.get('end_year', 2024)
+        self.change_types = self.job.get('change_types', ['deforestation', 'urban'])
+        
+        # 3. Store the Sort Key (Crucial for updates)
+        # DynamoDB numbers come back as Decimal, we convert to int/float if needed
+        self.created_at = self.job.get('created_at')
+        
+        print(f"Initialized processor for job {job_id} ({self.start_year}-{self.end_year})")
+
+    def load_job(self):
+        """
+        Loads job from DynamoDB using QUERY.
+        This handles the Schema (Partition Key + Sort Key) correctly.
+        """
+        print(f"Loading job {self.job_id}...")
+        try:
+            # Query using only the Partition Key (job_id)
+            response = jobs_table.query(
+                KeyConditionExpression=Key('job_id').eq(self.job_id)
+            )
+            
+            if response['Items']:
+                return response['Items'][0]
+            
+            raise ValueError(f"Job {self.job_id} not found in DynamoDB")
+            
+        except Exception as e:
+            print(f"Error loading job: {e}")
+            raise
+
+    def update_status(self, status, progress=None, error=None):
+        """
+        Updates the job status in DynamoDB.
+        REQUIRES both 'job_id' and 'created_at' for the Key.
+        """
+        if not self.created_at:
+            print("Warning: Cannot update status, missing 'created_at' sort key.")
+            return
+
+        update_expr = 'SET #status = :status, updated_at = :updated'
+        expr_values = {
+            ':status': status, 
+            ':updated': int(datetime.utcnow().timestamp())
+        }
+        
+        if progress is not None:
+            update_expr += ', progress = :progress'
+            expr_values[':progress'] = progress
+        
+        if error:
+            update_expr += ', error_message = :error'
+            expr_values[':error'] = error
+
+        try:
+            jobs_table.update_item(
+                Key={
+                    'job_id': self.job_id,
+                    'created_at': self.created_at # <--- Sort Key Required
+                },
+                UpdateExpression=update_expr,
+                ExpressionAttributeNames={'#status': 'status'},
+                ExpressionAttributeValues=expr_values
+            )
+            print(f"Status Updated: {status} ({progress}%)")
+        except Exception as e:
+            print(f"Failed to update status: {e}")
+
+    def find_file(self, data_type, year):
+        """
+        Dynamic search in S3 for files like processed/20LNR/ndvi/2021...
+        This fixes the folder structure issue without moving files.
+        """
+        # Look inside the 20LNR folder structure
+        prefix = f"processed/20LNR/{data_type}/"
+        print(f"  Searching for {year} in {prefix}...")
+        
+        response = s3.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix)
+        
+        if 'Contents' not in response:
+            raise FileNotFoundError(f"No files found in {prefix}")
+            
+        for obj in response['Contents']:
+            key = obj['Key']
+            # Match if key contains the year and is a TIFF
+            if str(year) in key and key.endswith('.tif'):
+                print(f"  Found matching file: {key}")
+                return key
+                
+        raise FileNotFoundError(f"Missing {data_type} .tif for year {year} in {prefix}")
+
+    def download_raster(self, s3_key):
+        local_path = self.work_dir / Path(s3_key).name
+        # Ensure local directory exists
+        local_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        s3.download_file(BUCKET_NAME, s3_key, str(local_path))
+        with rasterio.open(local_path) as src:
+            return src.read(1), src.profile
+
+    def run(self):
+        try:
+            self.update_status('PROCESSING', progress=10)
+
+            print("\n=== Step 1: Downloading Data (Dynamic Search) ===")
+            # 1. Download Rasters
+            ndvi_start, profile = self.download_raster(self.find_file('ndvi', self.start_year))
+            ndvi_end, _ = self.download_raster(self.find_file('ndvi', self.end_year))
+            ndbi_start, _ = self.download_raster(self.find_file('ndbi', self.start_year))
+            ndbi_end, _ = self.download_raster(self.find_file('ndbi', self.end_year))
+
+            statistics = {}
+
+            print("\n=== Step 2: Analysis ===")
+            # 2. Deforestation Logic
+            if 'deforestation' in self.change_types:
+                self.update_status('PROCESSING', progress=40)
+                diff = ndvi_end - ndvi_start
+                # Logic: NDVI drops significantly (> 0.2) and was originally vegetation (> 0.5)
+                mask = (diff < -0.2) & (ndvi_start > 0.5)
+                
+                # Calculate Area
+                pixel_area_km2 = abs(profile['transform'][0] * profile['transform'][4]) / 1e6
+                area = np.sum(mask) * pixel_area_km2
+                
+                # FIX: Convert float to Decimal for DynamoDB
+                from decimal import Decimal
+                statistics['deforestation_area_km2'] = Decimal(str(area))
+
+                # Save Result
+                out_path = self.work_dir / 'deforestation.tif'
+                with rasterio.open(out_path, 'w', **profile) as dst:
+                    dst.write(mask.astype(rasterio.uint8), 1)
+                
+                s3.upload_file(str(out_path), BUCKET_NAME, f"results/{self.job_id}/deforestation.tif")
+
+            # 3. Urban Expansion Logic
+            if 'urban' in self.change_types:
+                self.update_status('PROCESSING', progress=70)
+                diff = ndbi_end - ndbi_start
+                # Logic: NDBI increases (> 0.15) and ends up as built-up (> 0.1)
+                mask = (diff > 0.15) & (ndbi_end > 0.1)
+                
+                pixel_area_km2 = abs(profile['transform'][0] * profile['transform'][4]) / 1e6
+                area = np.sum(mask) * pixel_area_km2
+                
+                # FIX: Convert float to Decimal
+                from decimal import Decimal
+                statistics['urban_expansion_km2'] = Decimal(str(area))
+
+                out_path = self.work_dir / 'urban_expansion.tif'
+                with rasterio.open(out_path, 'w', **profile) as dst:
+                    dst.write(mask.astype(rasterio.uint8), 1)
+                
+                s3.upload_file(str(out_path), BUCKET_NAME, f"results/{self.job_id}/urban_expansion.tif")
+
+            # 4. Finish Up
+            print("\n=== Step 3: Finalizing ===")
+            self.update_status('PROCESSING', progress=90)
+
+            summary = {
+                'job_id': self.job_id,
+                'statistics': statistics, # Now contains Decimals, which DynamoDB loves
+                'completed_at': datetime.utcnow().isoformat()
+            }
+            
+            # Helper to save JSON locally (JSON doesn't like Decimal, so we convert back to float just for the file)
+            def decimal_default(obj):
+                if isinstance(obj, Decimal):
+                    return float(obj)
+                raise TypeError
+            
+            # Save Summary JSON
+            with open(self.work_dir / 'summary.json', 'w') as f:
+                json.dump(summary, f, default=decimal_default)
+            s3.upload_file(str(self.work_dir / 'summary.json'), BUCKET_NAME, f"results/{self.job_id}/summary.json")
+
+            # Final DB Update
+            jobs_table.update_item(
+                Key={
+                    'job_id': self.job_id,
+                    'created_at': self.created_at
+                },
+                UpdateExpression='SET statistics = :stats, #status = :st, completed_at = :comp, progress = :prog',
+                ExpressionAttributeNames={'#status': 'status'},
+                ExpressionAttributeValues={
+                    ':stats': statistics, 
+                    ':st': 'COMPLETED',
+                    ':comp': int(datetime.utcnow().timestamp()),
+                    ':prog': 100
+                }
+            )
+            print("✅ Job Complete")
+
+        except Exception as e:
+            print(f"❌ Processing Failed: {e}")
+            import traceback
+            traceback.print_exc()
+            self.update_status('FAILED', error=str(e))
+            raise    
+
+        finally:
+            # 2. THE CLEANUP (Put it inside 'finally' so it runs no matter what)
+            import shutil
+            if hasattr(self, 'local_dir') and os.path.exists(self.local_dir):
+                print(f"🧹 Maintenance: Removing local temp files at {self.local_dir}")
+                shutil.rmtree(self.local_dir)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print("Usage: python ec2_process_job.py <job_id>")
+        sys.exit(1)
+    
+    # Run the processor
+    LandUseProcessor(sys.argv[1]).run()

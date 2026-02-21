@@ -1,0 +1,19 @@
+kFROM public.ecr.aws/lambda/python:3.11
+
+# Install system-level GDAL dependencies
+RUN yum install -y gdal gdal-devel gcc-c++
+
+# Install Python libraries with specific version pins
+# Pinning numpy < 2.0 avoids the GCC 9.3 requirement
+RUN pip install --no-cache-dir \
+    "numpy<2.0" \
+    "rasterio==1.3.10" \
+    geopandas \
+    boto3 \
+    shapely \
+    matplotlib
+
+# Copy your processing script
+COPY lambda_worker.py ${LAMBDA_TASK_ROOT}
+
+CMD ["lambda_worker.lambda_handler"]

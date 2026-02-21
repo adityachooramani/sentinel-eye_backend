@@ -1,0 +1,429 @@
+nohup: ignoring input
+🚀 Waiting for jobs... (Press Ctrl+C to stop)
+
+============================================
+⚡ Found Job: e2c55cd2-d3fc-465a-836a-9b3b21b289b7
+   Timestamp: 1771004935
+============================================
+🔒 Status locked to PROCESSING
+🔄 Running ec2_process_job.py...
+
+============================================================
+STARTING LAND USE PROCESSING
+============================================================
+Job: e2c55cd2-d3fc-465a-836a-9b3b21b289b7
+Tile: 20LPR
+Years: 2021 → 2024
+Downsample: 4x (10m → 40m effective)
+[PROCESSING] 10%
+[DOWNLOADING] 15%
+
+--- Downloading bands for 20LPR / 2021 ---
+  Found scene: sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/B04.tif...
+  ✅ Downloaded B04 (59.8 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/B08.tif...
+  ✅ Downloaded B08 (73.6 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/B11.tif...
+  ✅ Downloaded B11 (17.8 MB)
+[DOWNLOADING] 30%
+
+--- Downloading bands for 20LPR / 2024 ---
+  Found scene: sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/B04.tif...
+  ✅ Downloaded B04 (62.4 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/B08.tif...
+  ✅ Downloaded B08 (74.5 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/B11.tif...
+  ✅ Downloaded B11 (18.2 MB)
+[CALCULATING_NDVI] 45%
+  Calculating NDVI for 2021...
+  NDVI 2021: shape=(2745, 2745), min=-0.503, max=0.927, mean=0.260
+  Calculating NDVI for 2024...
+  NDVI 2024: shape=(2745, 2745), min=-0.324, max=0.912, mean=0.259
+[CALCULATING_NDBI] 60%
+  Calculating NDBI for 2021...
+  NDBI 2021: shape=(2745, 2745), min=-0.523, max=0.442, mean=-0.090
+  Calculating NDBI for 2024...
+  NDBI 2024: shape=(2745, 2745), min=-0.659, max=0.449, mean=-0.077
+
+  🧹 Cleaning up raw band files...
+    Deleted 2024_B11.tif
+    Deleted 2024_B08.tif
+    Deleted 2024_B04.tif
+    Deleted 2021_B11.tif
+    Deleted 2021_B08.tif
+    Deleted 2021_B04.tif
+[DETECTING_CHANGES] 70%
+
+--- Detecting Deforestation ---
+  Deforestation: 15.59 km² (0.13% of tile)
+--- Detecting Urban Expansion ---
+  Urban expansion: 118.97 km² (0.99% of tile)
+[CREATING_MAPS] 80%
+[GENERATING_PNG] 85%
+
+--- Generating Analysis PNG ---
+  PNG saved: /tmp/landuse-processing/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/analysis_result.png (1830 KB)
+[UPLOADING] 90%
+
+--- Uploading Results to S3 ---
+  Uploading deforestation.tif (0.0 MB)...
+  Uploading urban_expansion.tif (0.0 MB)...
+  Uploading combined_changes.tif (0.1 MB)...
+  Uploading analysis_result.png (1.8 MB)...
+  Uploading 2021_ndvi.tif (9.8 MB)...
+  Uploading 2024_ndvi.tif (10.0 MB)...
+  Uploading 2021_ndbi.tif (10.4 MB)...
+  Uploading 2024_ndbi.tif (10.6 MB)...
+  ✅ Uploaded 8 files to s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/
+[COMPLETED] 100%
+
+============================================================
+✅ Job e2c55cd2-d3fc-465a-836a-9b3b21b289b7 COMPLETED SUCCESSFULLY
+   Tile: 20LPR
+   Resolution: 40m
+   Deforestation: 15.59 km² (0.13%)
+   Urban growth:  118.97 km² (0.99%)
+   Output dir:    /tmp/landuse-processing/e2c55cd2-d3fc-465a-836a-9b3b21b289b7
+============================================================
+
+Output files:
+  2021_ndbi.tif (10.4 MB)
+  2021_ndvi.tif (9.8 MB)
+  2024_ndbi.tif (10.6 MB)
+  2024_ndvi.tif (10.0 MB)
+  analysis_result.png (1.8 MB)
+  combined_changes.tif (0.1 MB)
+  deforestation.tif (0.0 MB)
+  summary.json (0.0 MB)
+  urban_expansion.tif (0.0 MB)
+🔄 Running ec2_encroachment_detection.py...
+Job ID: e2c55cd2-d3fc-465a-836a-9b3b21b289b7
+Deforestation Raster: /tmp/landuse-processing/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/deforestation.tif
+Urban Raster: /tmp/landuse-processing/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/urban_expansion.tif
+Downloading boundaries from s3://landuse-rondonia-data-dev/boundaries/protected-areas.geojson
+Loading boundaries from /tmp/boundaries.geojson
+  Loaded 2 protected areas
+
+=== ENCROACHMENT DETECTION ===
+
+Checking area: Area_0 (Unknown)
+  Warning: Could not process area: Input shapes do not overlap raster.
+  Warning: Could not process area: Input shapes do not overlap raster.
+
+Checking area: Area_1 (Unknown)
+  ⚠️  Deforestation encroachment: 7.3440 km²
+  ⚠️  Urban encroachment: 57.4464 km²
+
+✅ Total encroachments detected: 2
+Uploading to s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/encroachment_summary.json
+✅ Job e2c55cd2-d3fc-465a-836a-9b3b21b289b7 DONE!
+============================================
+👀 Watching for next job...
+⏳ Still watching... (17:49:42)
+⏳ Still watching... (17:50:51)
+⏳ Still watching... (17:51:59)
+⏳ Still watching... (17:53:08)
+⏳ Still watching... (17:54:17)
+⏳ Still watching... (17:55:25)
+⏳ Still watching... (17:56:34)
+⏳ Still watching... (17:57:43)
+⏳ Still watching... (17:58:51)
+⏳ Still watching... (18:00:00)
+⏳ Still watching... (18:01:10)
+⏳ Still watching... (18:02:19)
+⏳ Still watching... (18:03:28)
+⏳ Still watching... (18:04:36)
+⏳ Still watching... (18:05:45)
+⏳ Still watching... (18:06:55)
+⏳ Still watching... (18:08:04)
+⏳ Still watching... (18:09:13)
+⏳ Still watching... (18:10:21)
+⏳ Still watching... (18:11:30)
+⏳ Still watching... (18:12:39)
+⏳ Still watching... (18:13:48)
+⏳ Still watching... (18:14:57)
+⏳ Still watching... (18:16:06)
+⏳ Still watching... (18:17:14)
+⏳ Still watching... (18:18:23)
+⏳ Still watching... (18:19:31)
+⏳ Still watching... (18:20:40)
+⏳ Still watching... (18:21:49)
+⏳ Still watching... (18:22:58)
+⏳ Still watching... (18:24:06)
+⏳ Still watching... (18:25:15)
+⏳ Still watching... (18:26:23)
+
+============================================
+⚡ Found Job: b0f56f39-5f2d-4b16-a981-7b8124ca7c59
+   Timestamp: 1771007196
+============================================
+🧹 Cleaning previous job data from S3...
+delete: s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/2021_ndbi.tif
+delete: s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/2021_ndvi.tif
+delete: s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/deforestation.tif
+delete: s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/urban_expansion.tif
+delete: s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/encroachment_summary.json
+delete: s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/2024_ndbi.tif
+delete: s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/summary.json
+delete: s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/analysis_result.png
+delete: s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/2024_ndvi.tif
+delete: s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/combined_changes.tif
+   Deleted s3://landuse-rondonia-data-dev/results/e2c55cd2-d3fc-465a-836a-9b3b21b289b7/
+🔒 Status locked to PROCESSING
+🔄 Running ec2_process_job.py...
+
+============================================================
+STARTING LAND USE PROCESSING
+============================================================
+Job: b0f56f39-5f2d-4b16-a981-7b8124ca7c59
+Tile: 20LPR
+Years: 2021 → 2024
+Downsample: 4x (10m → 40m effective)
+[PROCESSING] 10%
+[DOWNLOADING] 15%
+
+--- Downloading bands for 20LPR / 2021 ---
+  Found scene: sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/B04.tif...
+  ✅ Downloaded B04 (59.8 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/B08.tif...
+  ✅ Downloaded B08 (73.6 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/B11.tif...
+  ✅ Downloaded B11 (17.8 MB)
+[DOWNLOADING] 30%
+
+--- Downloading bands for 20LPR / 2024 ---
+  Found scene: sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/B04.tif...
+  ✅ Downloaded B04 (62.4 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/B08.tif...
+  ✅ Downloaded B08 (74.5 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/B11.tif...
+  ✅ Downloaded B11 (18.2 MB)
+[CALCULATING_NDVI] 45%
+  Calculating NDVI for 2021...
+  NDVI 2021: shape=(2745, 2745), min=-0.503, max=0.927, mean=0.260
+  Calculating NDVI for 2024...
+  NDVI 2024: shape=(2745, 2745), min=-0.324, max=0.912, mean=0.259
+[CALCULATING_NDBI] 60%
+  Calculating NDBI for 2021...
+  NDBI 2021: shape=(2745, 2745), min=-0.523, max=0.442, mean=-0.090
+  Calculating NDBI for 2024...
+  NDBI 2024: shape=(2745, 2745), min=-0.659, max=0.449, mean=-0.077
+
+  🧹 Cleaning up raw band files...
+    Deleted 2024_B11.tif
+    Deleted 2024_B08.tif
+    Deleted 2024_B04.tif
+    Deleted 2021_B11.tif
+    Deleted 2021_B08.tif
+    Deleted 2021_B04.tif
+[DETECTING_CHANGES] 70%
+
+--- Detecting Deforestation ---
+  Deforestation: 15.59 km² (0.13% of tile)
+--- Detecting Urban Expansion ---
+  Urban expansion: 118.97 km² (0.99% of tile)
+[CREATING_MAPS] 80%
+[GENERATING_PNG] 85%
+
+--- Generating Analysis PNG ---
+  PNG saved: /tmp/landuse-processing/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/analysis_result.png (1830 KB)
+[UPLOADING] 90%
+
+--- Uploading Results to S3 ---
+  Uploading deforestation.tif (0.0 MB)...
+  Uploading urban_expansion.tif (0.0 MB)...
+  Uploading combined_changes.tif (0.1 MB)...
+  Uploading analysis_result.png (1.8 MB)...
+  Uploading 2021_ndvi.tif (9.8 MB)...
+  Uploading 2024_ndvi.tif (10.0 MB)...
+  Uploading 2021_ndbi.tif (10.4 MB)...
+  Uploading 2024_ndbi.tif (10.6 MB)...
+  ✅ Uploaded 8 files to s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/
+[COMPLETED] 100%
+
+============================================================
+✅ Job b0f56f39-5f2d-4b16-a981-7b8124ca7c59 COMPLETED SUCCESSFULLY
+   Tile: 20LPR
+   Resolution: 40m
+   Deforestation: 15.59 km² (0.13%)
+   Urban growth:  118.97 km² (0.99%)
+   Output dir:    /tmp/landuse-processing/b0f56f39-5f2d-4b16-a981-7b8124ca7c59
+============================================================
+
+Output files:
+  2021_ndbi.tif (10.4 MB)
+  2021_ndvi.tif (9.8 MB)
+  2024_ndbi.tif (10.6 MB)
+  2024_ndvi.tif (10.0 MB)
+  analysis_result.png (1.8 MB)
+  combined_changes.tif (0.1 MB)
+  deforestation.tif (0.0 MB)
+  summary.json (0.0 MB)
+  urban_expansion.tif (0.0 MB)
+🔄 Running ec2_encroachment_detection.py...
+Job ID: b0f56f39-5f2d-4b16-a981-7b8124ca7c59
+Deforestation Raster: /tmp/landuse-processing/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/deforestation.tif
+Urban Raster: /tmp/landuse-processing/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/urban_expansion.tif
+Downloading boundaries from s3://landuse-rondonia-data-dev/boundaries/protected-areas.geojson
+Loading boundaries from /tmp/boundaries.geojson
+  Loaded 2 protected areas
+
+=== ENCROACHMENT DETECTION ===
+
+Checking area: Area_0 (Unknown)
+  Warning: Could not process area: Input shapes do not overlap raster.
+  Warning: Could not process area: Input shapes do not overlap raster.
+
+Checking area: Area_1 (Unknown)
+  ⚠️  Deforestation encroachment: 7.3440 km²
+  ⚠️  Urban encroachment: 57.4464 km²
+
+✅ Total encroachments detected: 2
+Uploading to s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/encroachment_summary.json
+✅ Job b0f56f39-5f2d-4b16-a981-7b8124ca7c59 DONE!
+============================================
+👀 Watching for next job...
+⏳ Still watching... (18:27:53)
+⏳ Still watching... (18:29:02)
+
+============================================
+⚡ Found Job: 66d5c469-813b-4b03-94ff-241a0e53f32c
+   Timestamp: 1771007349
+============================================
+🧹 Cleaning previous job data from S3...
+delete: s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/2021_ndbi.tif
+delete: s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/2021_ndvi.tif
+delete: s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/summary.json
+delete: s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/analysis_result.png
+delete: s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/combined_changes.tif
+delete: s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/deforestation.tif
+delete: s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/encroachment_summary.json
+delete: s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/urban_expansion.tif
+delete: s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/2024_ndvi.tif
+delete: s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/2024_ndbi.tif
+   Deleted s3://landuse-rondonia-data-dev/results/b0f56f39-5f2d-4b16-a981-7b8124ca7c59/
+🔒 Status locked to PROCESSING
+🔄 Running ec2_process_job.py...
+
+============================================================
+STARTING LAND USE PROCESSING
+============================================================
+Job: 66d5c469-813b-4b03-94ff-241a0e53f32c
+Tile: 20LPR
+Years: 2021 → 2024
+Downsample: 4x (10m → 40m effective)
+[PROCESSING] 10%
+[DOWNLOADING] 15%
+
+--- Downloading bands for 20LPR / 2021 ---
+  Found scene: sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/B04.tif...
+  ✅ Downloaded B04 (59.8 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/B08.tif...
+  ✅ Downloaded B08 (73.6 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2021/7/S2A_20LPR_20210701_0_L2A/B11.tif...
+  ✅ Downloaded B11 (17.8 MB)
+[DOWNLOADING] 30%
+
+--- Downloading bands for 20LPR / 2024 ---
+  Found scene: sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/B04.tif...
+  ✅ Downloaded B04 (62.4 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/B08.tif...
+  ✅ Downloaded B08 (74.5 MB)
+  Downloading sentinel-s2-l2a-cogs/20/L/PR/2024/7/S2A_20LPR_20240705_0_L2A/B11.tif...
+  ✅ Downloaded B11 (18.2 MB)
+[CALCULATING_NDVI] 45%
+  Calculating NDVI for 2021...
+  NDVI 2021: shape=(2745, 2745), min=-0.503, max=0.927, mean=0.260
+  Calculating NDVI for 2024...
+  NDVI 2024: shape=(2745, 2745), min=-0.324, max=0.912, mean=0.259
+[CALCULATING_NDBI] 60%
+  Calculating NDBI for 2021...
+  NDBI 2021: shape=(2745, 2745), min=-0.523, max=0.442, mean=-0.090
+  Calculating NDBI for 2024...
+  NDBI 2024: shape=(2745, 2745), min=-0.659, max=0.449, mean=-0.077
+
+  🧹 Cleaning up raw band files...
+    Deleted 2024_B11.tif
+    Deleted 2024_B08.tif
+    Deleted 2024_B04.tif
+    Deleted 2021_B11.tif
+    Deleted 2021_B08.tif
+    Deleted 2021_B04.tif
+[DETECTING_CHANGES] 70%
+
+--- Detecting Deforestation ---
+  Deforestation: 15.59 km² (0.13% of tile)
+--- Detecting Urban Expansion ---
+  Urban expansion: 118.97 km² (0.99% of tile)
+[CREATING_MAPS] 80%
+[GENERATING_PNG] 85%
+
+--- Generating Analysis PNG ---
+  PNG saved: /tmp/landuse-processing/66d5c469-813b-4b03-94ff-241a0e53f32c/analysis_result.png (1830 KB)
+[UPLOADING] 90%
+
+--- Uploading Results to S3 ---
+  Uploading deforestation.tif (0.0 MB)...
+  Uploading urban_expansion.tif (0.0 MB)...
+  Uploading combined_changes.tif (0.1 MB)...
+  Uploading analysis_result.png (1.8 MB)...
+  Uploading 2021_ndvi.tif (9.8 MB)...
+  Uploading 2024_ndvi.tif (10.0 MB)...
+  Uploading 2021_ndbi.tif (10.4 MB)...
+  Uploading 2024_ndbi.tif (10.6 MB)...
+  ✅ Uploaded 8 files to s3://landuse-rondonia-data-dev/results/66d5c469-813b-4b03-94ff-241a0e53f32c/
+[COMPLETED] 100%
+
+============================================================
+✅ Job 66d5c469-813b-4b03-94ff-241a0e53f32c COMPLETED SUCCESSFULLY
+   Tile: 20LPR
+   Resolution: 40m
+   Deforestation: 15.59 km² (0.13%)
+   Urban growth:  118.97 km² (0.99%)
+   Output dir:    /tmp/landuse-processing/66d5c469-813b-4b03-94ff-241a0e53f32c
+============================================================
+
+Output files:
+  2021_ndbi.tif (10.4 MB)
+  2021_ndvi.tif (9.8 MB)
+  2024_ndbi.tif (10.6 MB)
+  2024_ndvi.tif (10.0 MB)
+  analysis_result.png (1.8 MB)
+  combined_changes.tif (0.1 MB)
+  deforestation.tif (0.0 MB)
+  summary.json (0.0 MB)
+  urban_expansion.tif (0.0 MB)
+🔄 Running ec2_encroachment_detection.py...
+Job ID: 66d5c469-813b-4b03-94ff-241a0e53f32c
+Deforestation Raster: /tmp/landuse-processing/66d5c469-813b-4b03-94ff-241a0e53f32c/deforestation.tif
+Urban Raster: /tmp/landuse-processing/66d5c469-813b-4b03-94ff-241a0e53f32c/urban_expansion.tif
+Downloading boundaries from s3://landuse-rondonia-data-dev/boundaries/protected-areas.geojson
+Loading boundaries from /tmp/boundaries.geojson
+  Loaded 2 protected areas
+
+=== ENCROACHMENT DETECTION ===
+
+Checking area: Area_0 (Unknown)
+  Warning: Could not process area: Input shapes do not overlap raster.
+  Warning: Could not process area: Input shapes do not overlap raster.
+
+Checking area: Area_1 (Unknown)
+  ⚠️  Deforestation encroachment: 7.3440 km²
+  ⚠️  Urban encroachment: 57.4464 km²
+
+✅ Total encroachments detected: 2
+Uploading to s3://landuse-rondonia-data-dev/results/66d5c469-813b-4b03-94ff-241a0e53f32c/encroachment_summary.json
+✅ Job 66d5c469-813b-4b03-94ff-241a0e53f32c DONE!
+============================================
+👀 Watching for next job...
+⏳ Still watching... (18:30:33)
+⏳ Still watching... (18:31:41)
+⏳ Still watching... (18:32:50)
+⏳ Still watching... (18:33:59)
+⏳ Still watching... (18:35:08)
